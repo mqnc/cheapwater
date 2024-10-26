@@ -1,5 +1,7 @@
 # Cheap Interactive Water Using three.js
 
+Click [here](https://mqnc.github.io/cheapwater/) to see the demo.
+
 The idea is to generate a dynamic normal map in a second scene and use that in the water shader.
 
 The basic water texture is a `MeshStandardMaterial` with a fractal Perlin noise normal map. It is pimped a bit, the normal map is applied three times, each layer rotated by 120°, including flowing direction. The normal map is very small but no repetition is noticable.
