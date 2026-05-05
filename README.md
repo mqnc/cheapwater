@@ -1,6 +1,6 @@
 # Cheap Interactive Water Using three.js
 
-Click [here](https://mqnc.github.io/cheapwater/) to see the demo.
+Click [here](https://mqnc.github.io/cheapwater/) to see the demo. Press N to toggle between ripple normal view and final view. Press number keys to set the number of overlaid water normal maps.
 
 The idea is to generate a dynamic normal map in a second scene and use that in the water shader.
 

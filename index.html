@@ -16,8 +16,8 @@
 
 <body style="margin:0; overflow:hidden;">
 	<script type="module">
-		import * as THREE from 'three';
-		import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+		import * as THREE from 'three'
+		import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
 		let renderer = new THREE.WebGLRenderer()
 		document.body.appendChild(renderer.domElement)
@@ -33,7 +33,7 @@
 		let gray50 = new THREE.Color(0.5, 0.5, 0.5)
 		normalScene.background = gray50
 
-		let squareGeometry = new THREE.PlaneGeometry(10, 10);
+		let squareGeometry = new THREE.PlaneGeometry(10, 10)
 
 		let minusMaterial = new THREE.MeshBasicMaterial({
 			color: gray50,
@@ -46,10 +46,9 @@
 			depthWrite: false,
 			transparent: true,
 			side: THREE.DoubleSide
-		});
+		})
 
-		let textureLoader = new THREE.TextureLoader();
-		let texture = textureLoader.load('ripple.png');
+		let texture = new THREE.TextureLoader().load('ripple.png')
 		let plusMaterial = new THREE.MeshBasicMaterial({
 			map: texture,
 			blending: THREE.CustomBlending,
@@ -60,21 +59,21 @@
 			depthWrite: false,
 			transparent: true,
 			side: THREE.DoubleSide
-		});
+		})
 
 		let ripples = []
 		let order = 0
 
 		function makeRipple(x, y, strength) {
-			let minusSquare = new THREE.Mesh(squareGeometry, minusMaterial.clone());
-			normalScene.add(minusSquare);
+			let minusSquare = new THREE.Mesh(squareGeometry, minusMaterial.clone())
+			normalScene.add(minusSquare)
 			minusSquare.renderOrder = order++
 			minusSquare.position.set(x, y, 0)
 			minusSquare.scale.set(0.1, 0.1, 1)
 			minusSquare.material.opacity = strength
 
-			let plusSquare = new THREE.Mesh(squareGeometry, plusMaterial.clone());
-			normalScene.add(plusSquare);
+			let plusSquare = new THREE.Mesh(squareGeometry, plusMaterial.clone())
+			normalScene.add(plusSquare)
 			plusSquare.renderOrder = order++
 			plusSquare.position.set(x, y, 0)
 			plusSquare.scale.set(0.1, 0.1, 1)
@@ -84,7 +83,7 @@
 		}
 
 		function updateRipples(dt) {
-			for (let ripple of ripples) {
+			for (let ripple of [...ripples]) {
 				ripple.minus.scale.x += dt
 				ripple.minus.scale.y += dt
 				ripple.minus.material.opacity -= dt / 6
@@ -99,105 +98,110 @@
 			}
 		}
 
-		let normalTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-		normalTarget.texture.colorSpace = THREE.NoColorSpace;
-		let normalTextureUniform = { value: normalTarget.texture };
+		let normalTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight)
+		normalTarget.texture.colorSpace = THREE.NoColorSpace
+		let normalTextureUniform = { value: normalTarget.texture }
 
 		let colorScene = new THREE.Scene()
 		THREE.ColorManagement.enabled = true
 
-		const pmremGenerator = new THREE.PMREMGenerator(renderer);
+		const pmremGenerator = new THREE.PMREMGenerator(renderer)
 		pmremGenerator.compileCubemapShader()
 
-		const cubeLoader = new THREE.CubeTextureLoader();
+		const cubeLoader = new THREE.CubeTextureLoader()
 		const envMap = cubeLoader.load(['px.jpg', 'nx.jpg', 'py.jpg', 'ny.jpg', 'pz.jpg', 'nz.jpg'],
 			function (texture) {
-				const pmremTexture = pmremGenerator.fromCubemap(texture).texture;
-				colorScene.environment = texture;
+				const pmremTexture = pmremGenerator.fromCubemap(texture).texture
+				colorScene.environment = pmremTexture
 				colorScene.environmentRotation.set(Math.PI / 2, 0, Math.PI, "XYZ")
-				colorScene.background = texture;
+				colorScene.background = texture
 				colorScene.backgroundRotation.set(Math.PI / 2, 0, Math.PI, "XYZ")
 			}
-		);
-
-		let waterGeometry = new THREE.PlaneGeometry(100, 100);
+		)
 		let waterMaterial = new THREE.MeshStandardMaterial({
 			color: 0x5A75A0,
 			metalness: 1,
 			roughness: 0.27,
-			normalMap: new THREE.TextureLoader().load('water_normal.png', texture => { texture.flipY = false }),
+			normalMap: new THREE.TextureLoader().load('water_normal.png', t => { t.flipY = false; }),
 			normalMapType: THREE.ObjectSpaceNormalMap,
 			side: THREE.DoubleSide
-		});
-		waterMaterial.normalMap.wrapS = THREE.RepeatWrapping;
-		waterMaterial.normalMap.wrapT = THREE.RepeatWrapping;
-		waterMaterial.normalMap.repeat.set(10, 10);
+		})
+		waterMaterial.normalMap.wrapS = THREE.RepeatWrapping
+		waterMaterial.normalMap.wrapT = THREE.RepeatWrapping
+		waterMaterial.normalMap.repeat.set(10, 10)
 
 		let timeUniform = { value: 0 }
 		let resolutionUniform = { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+		let overlaysUniform = { value: 3 }
 
-		waterMaterial.onBeforeCompile = (shader, renderer) => {
-			console.log(shader)
+		waterMaterial.onBeforeCompile = (shader) => {
 			shader.uniforms.time = timeUniform
 			shader.uniforms.resolution = resolutionUniform
 			shader.uniforms.normalDisturbance = normalTextureUniform
+			shader.uniforms.overlays = overlaysUniform
 
-			let chunk = ""
-			for (let dir = 0.1; dir < 2 * Math.PI; dir += 2 * Math.PI / 3) {
-				chunk += `{
-					mat2 rot2d = mat2(${Math.cos(dir)}, ${-Math.sin(dir)}, ${Math.sin(dir)}, ${Math.cos(dir)});
-					vec3 subNormal = texture2D( normalMap, rot2d * vNormalMapUv + vec2(time*0.03, ${dir}) ).rgb * 2.0 - 1.0;
-					subNormal.xy = rot2d * subNormal.xy;
-					normal += subNormal;
-				}`
-			}
-			shader.fragmentShader = "uniform float time;\n"
-				+ "uniform vec2 resolution;\n"
-				+ "uniform sampler2D normalDisturbance;\n"
-				+ shader.fragmentShader.replace(
+			shader.fragmentShader =
+				"uniform float time;\n" +
+				"uniform vec2 resolution;\n" +
+				"uniform sampler2D normalDisturbance;\n" +
+				"uniform int overlays;\n" +
+				shader.fragmentShader.replace(
 					"\t#include <normal_fragment_maps>",
-					chunk + `
-					vec3 ripple = texture2D( normalDisturbance, gl_FragCoord.xy / resolution ).rgb * 2.0 - 1.0;
-					normal += 3.0 * ripple;
+					`
+					vec3 baseNormal = normal;
+
+					for(int i=0; i<10; i++){
+						if(i>=overlays){break;}
+						float dir = float(i)/float(overlays) * 6.2831853;
+						mat2 rot2d = mat2(cos(dir), -sin(dir), sin(dir), cos(dir));
+						vec3 subNormal = texture2D(normalMap, rot2d * vNormalMapUv + vec2(time*0.03, dir)).rgb*2.0-1.0;
+						subNormal.xy = rot2d * subNormal.xy;
+						baseNormal += subNormal;
+					}
+
+					vec3 ripple = texture2D(normalDisturbance, gl_FragCoord.xy / resolution).rgb*2.0-1.0;
+					baseNormal += 3.0 * ripple;
+
 					#ifdef FLIP_SIDED
-						normal = - normal;
+						baseNormal = -baseNormal;
 					#endif
 					#ifdef DOUBLE_SIDED
-						normal = normal * faceDirection;
+						baseNormal = baseNormal * faceDirection;
 					#endif
-					normal = normalize( normalMatrix * normal );
+					normal = normalize(normalMatrix * baseNormal);
 					`
 				)
 		}
-		let waterPlane = new THREE.Mesh(waterGeometry, waterMaterial);
-		colorScene.add(waterPlane);
+
+		let waterPlane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), waterMaterial)
+		colorScene.add(waterPlane)
 
 		let ball = new THREE.Mesh(
 			new THREE.SphereGeometry(0.1, 16, 16),
 			new THREE.MeshStandardMaterial({ roughness: 0, metalness: 1 })
-		);
-		colorScene.add(ball);
+		)
+		colorScene.add(ball)
 
 		let drops = []
 		function makeDrop(x, y, z) {
-			let drop = new THREE.Mesh(
+			let d = new THREE.Mesh(
 				new THREE.SphereGeometry(0.1, 16, 16),
 				new THREE.MeshStandardMaterial({ roughness: 0, metalness: 1 })
-			);
-			drop.position.set(x, y, z)
-			drop.userData.vz = 0
-			colorScene.add(drop)
-			drops.push(drop)
+			)
+			d.position.set(x, y, z)
+			d.userData.vz = 0
+			colorScene.add(d)
+			drops.push(d)
 		}
 
 		function updateDrops(dt) {
-			for (let drop of drops) {
-				drop.position.z += drop.userData.vz * dt
-				drop.userData.vz -= 9.81 * dt
-				if (drop.position.z < 0) {
-					colorScene.remove(drop)
-					drops.splice(drops.indexOf(drop), 1)
-					makeRipple(drop.position.x, drop.position.y, 0.5)
+			for (let d of [...drops]) {
+				d.position.z += d.userData.vz * dt
+				d.userData.vz -= 9.81 * dt
+				if (d.position.z < 0) {
+					colorScene.remove(d)
+					drops.splice(drops.indexOf(d), 1)
+					makeRipple(d.position.x, d.position.y, 0.5)
 				}
 			}
 		}
@@ -209,40 +213,53 @@
 			camera.aspect = window.innerWidth / window.innerHeight
 			camera.updateProjectionMatrix()
 		}
-
 		window.addEventListener('resize', resize)
 		resize()
 
-		let i = 0;
+		let showNormal = false
+
+		window.addEventListener('keydown', e => {
+			if (e.key === 'n') {
+				showNormal = !showNormal
+			}
+			if (e.key >= '0' && e.key <= '9') {
+				overlaysUniform.value = parseInt(e.key)
+			}
+		})
+
+		let i = 0
 		function animate() {
 			let t = performance.now() / 1000
 			let dt = t - timeUniform.value
-			timeUniform.value = t;
+			timeUniform.value = t
 			requestAnimationFrame(animate)
 
-			let x = Math.sin(Math.sqrt(5) * timeUniform.value) * 5
-			let y = Math.cos(timeUniform.value) * 5
-			let vx = Math.sqrt(5) * Math.cos(Math.sqrt(5) * timeUniform.value) * 5
-			let vy = Math.sin(timeUniform.value) * 5
+			let x = Math.sin(Math.sqrt(5) * t) * 5
+			let y = Math.cos(t) * 5
+			let vx = Math.sqrt(5) * Math.cos(Math.sqrt(5) * t) * 5
+			let vy = Math.sin(t) * 5
 			ball.position.set(x, y, 0)
 
-			if (i++ % 3 == 0) {
-				makeRipple(x, y, (vx ** 2 + vy ** 2) ** 0.5 / 30)
+			if (i++ % 3 === 0) {
+				makeRipple(x, y, Math.sqrt(vx * vx + vy * vy) / 30)
 			}
-			if (i % 10 == 1) {
+			if (i % 10 === 1) {
 				makeDrop(Math.random() * 30 - 15, Math.random() * 30 - 15, 20)
 			}
 
 			updateRipples(dt)
 			updateDrops(dt)
 
-			renderer.setRenderTarget(normalTarget);
-			renderer.render(normalScene, camera);
+			renderer.setRenderTarget(normalTarget)
+			renderer.render(normalScene, camera)
 
-			renderer.setRenderTarget(null);
-			renderer.render(colorScene, camera)
+			renderer.setRenderTarget(null)
+			if (showNormal) {
+				renderer.render(normalScene, camera)
+			} else {
+				renderer.render(colorScene, camera)
+			}
 		}
-
 		animate()
 	</script>
 </body>
