@@ -8,8 +8,8 @@
 	<title>Cheap Interactive Water Demo</title>
 	<script type="importmap">
 		{"imports": {
-			"three": "https://cdn.jsdelivr.net/npm/three@v0.169.0/build/three.module.js",
-			"three/addons/": "https://cdn.jsdelivr.net/npm/three@v0.169.0/examples/jsm/"
+			"three": "https://cdn.jsdelivr.net/npm/three@v0.186.0/build/three.module.js",
+			"three/addons/": "https://cdn.jsdelivr.net/npm/three@v0.186.0/examples/jsm/"
 		  }}
 	  </script>
 </head>
@@ -113,9 +113,9 @@
 			function (texture) {
 				const pmremTexture = pmremGenerator.fromCubemap(texture).texture
 				colorScene.environment = pmremTexture
-				colorScene.environmentRotation.set(Math.PI / 2, 0, Math.PI, "XYZ")
+				colorScene.environmentRotation.set(-Math.PI / 2, 0, Math.PI, "XYZ")
 				colorScene.background = texture
-				colorScene.backgroundRotation.set(Math.PI / 2, 0, Math.PI, "XYZ")
+				colorScene.backgroundRotation.set(-Math.PI / 2, 0, Math.PI, "XYZ")
 			}
 		)
 		let waterMaterial = new THREE.MeshStandardMaterial({
