@@ -230,7 +230,9 @@
 			}
 		})
 
-		let i = 0
+		let tLastDrop = 0;
+		let tLastRipple = 0;
+
 		function animate() {
 			let t = performance.now() / 1000
 			let dt = t - timeUniform.value
@@ -243,11 +245,16 @@
 			let vy = Math.sin(t) * 5
 			ball.position.set(x, y, 0)
 
-			if (i++ % 3 === 0) {
+			tLastRipple += dt;
+			if (tLastRipple > 0.05) {
 				makeRipple(x, y, Math.sqrt(vx * vx + vy * vy) / 30)
+				tLastRipple = 0;
 			}
-			if (i % 10 === 1) {
+
+			tLastDrop += dt;
+			if (tLastDrop > 0.2) {
 				makeDrop(Math.random() * 30 - 15, Math.random() * 30 - 15, 20)
+				tLastDrop = 0;
 			}
 
 			updateRipples(dt)
