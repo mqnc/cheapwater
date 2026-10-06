@@ -122,7 +122,7 @@
 			color: 0x5A75A0,
 			metalness: 1,
 			roughness: 0.27,
-			normalMap: new THREE.TextureLoader().load('water_normal.png', t => { t.flipY = false; }),
+			normalMap: new THREE.TextureLoader().load('water_normal.png'),
 			normalMapType: THREE.ObjectSpaceNormalMap,
 			side: THREE.DoubleSide
 		})
@@ -148,27 +148,30 @@
 				shader.fragmentShader.replace(
 					"\t#include <normal_fragment_maps>",
 					`
-					vec3 baseNormal = normal;
+					vec3 disturbanceSum = vec3(0.0, 0.0, 0.0);
 
 					for(int i=0; i<10; i++){
 						if(i>=overlays){break;}
-						float dir = float(i)/float(overlays) * 6.2831853;
-						mat2 rot2d = mat2(cos(dir), -sin(dir), sin(dir), cos(dir));
-						vec3 subNormal = texture2D(normalMap, rot2d * vNormalMapUv + vec2(time*0.03, dir)).rgb*2.0-1.0;
-						subNormal.xy = rot2d * subNormal.xy;
-						baseNormal += subNormal;
+						float dir = float(i)/float(overlays) * 6.2831853 + 3.0;
+						float cd = cos(dir);
+						float sd = sin(dir);
+						mat2 rot2d = mat2(cd, -sd, sd, cd);
+						mat2 invRot2d = mat2(cd, sd, -sd, cd);
+						vec3 noise = texture2D(normalMap, rot2d * vNormalMapUv + vec2(time*0.03, dir)).rgb*2.0-1.0;
+						noise.xy = invRot2d * noise.xy;
+						disturbanceSum += noise;
 					}
 
-					vec3 ripple = texture2D(normalDisturbance, gl_FragCoord.xy / resolution).rgb*2.0-1.0;
-					baseNormal += 3.0 * ripple;
+					vec3 ripples = texture2D(normalDisturbance, gl_FragCoord.xy / resolution).rgb * 2.0 - 1.0;
+					disturbanceSum += 3.0 * ripples;
 
 					#ifdef FLIP_SIDED
-						baseNormal = -baseNormal;
+						disturbanceSum = -disturbanceSum;
 					#endif
 					#ifdef DOUBLE_SIDED
-						baseNormal = baseNormal * faceDirection;
+						disturbanceSum = disturbanceSum * faceDirection;
 					#endif
-					normal = normalize(normalMatrix * baseNormal);
+					normal = normalize(normal + normalMatrix * disturbanceSum);
 					`
 				)
 		}
